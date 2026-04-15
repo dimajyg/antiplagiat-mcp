@@ -11,6 +11,7 @@ import contextvars
 from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import Field
 
 from .config import RequestCredentials, settings
@@ -39,6 +40,25 @@ def current_credentials() -> RequestCredentials:
 # Single shared pipeline (lazy model loading happens on first call).
 pipeline = Pipeline()
 
+# DNS-rebinding protection is on by default and only allows localhost. We're a
+# public service behind Caddy on `46-232-250-248.sslip.io:8443`, so we whitelist
+# both the public hostname and the loopback addresses Caddy uses internally.
+_transport_security = TransportSecuritySettings(
+    enable_dns_rebinding_protection=True,
+    allowed_hosts=[
+        "46-232-250-248.sslip.io",
+        "46-232-250-248.sslip.io:8443",
+        "127.0.0.1",
+        "127.0.0.1:8765",
+        "localhost",
+        "localhost:8765",
+    ],
+    allowed_origins=[
+        "https://46-232-250-248.sslip.io:8443",
+        "https://46-232-250-248.sslip.io",
+    ],
+)
+
 mcp = FastMCP(
     name="antiplagiat-mcp",
     instructions=(
@@ -53,6 +73,7 @@ mcp = FastMCP(
     stateless_http=True,
     json_response=True,
     streamable_http_path="/",
+    transport_security=_transport_security,
 )
 
 
