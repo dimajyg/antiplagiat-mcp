@@ -41,21 +41,20 @@ def current_credentials() -> RequestCredentials:
 pipeline = Pipeline()
 
 # DNS-rebinding protection is on by default and only allows localhost. We're a
-# public service behind Caddy on `46-232-250-248.sslip.io:8443`, so we whitelist
-# both the public hostname and the loopback addresses Caddy uses internally.
+# public service exposed via Tailscale Funnel on the hostname below, so we
+# whitelist that plus the loopback addresses tailscaled uses internally.
+PUBLIC_HOSTNAME = "antiplagiat-mcp.tailf03eb8.ts.net"
 _transport_security = TransportSecuritySettings(
     enable_dns_rebinding_protection=True,
     allowed_hosts=[
-        "46-232-250-248.sslip.io",
-        "46-232-250-248.sslip.io:8443",
+        PUBLIC_HOSTNAME,
         "127.0.0.1",
         "127.0.0.1:8765",
         "localhost",
         "localhost:8765",
     ],
     allowed_origins=[
-        "https://46-232-250-248.sslip.io:8443",
-        "https://46-232-250-248.sslip.io",
+        f"https://{PUBLIC_HOSTNAME}",
     ],
 )
 

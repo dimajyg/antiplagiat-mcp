@@ -6,7 +6,7 @@ The server is **stateless with respect to credentials** — it stores no API key
 
 Public endpoint (no SLA, runs on a personal VPS, may go down):
 
-> `https://46-232-250-248.sslip.io:8443/mcp/`
+> `https://antiplagiat-mcp.tailf03eb8.ts.net/mcp/`
 
 ## Plug it into Claude Code
 
@@ -16,7 +16,7 @@ Add this to your `.claude/mcp.json` (or whichever MCP config your client uses):
 {
   "mcpServers": {
     "antiplagiat": {
-      "url": "https://46-232-250-248.sslip.io:8443/mcp/",
+      "url": "https://antiplagiat-mcp.tailf03eb8.ts.net/mcp/",
       "headers": {
         "X-OpenRouter-Key": "sk-or-v1-...",
         "X-Serper-Key": "",
@@ -120,14 +120,15 @@ pytest -q          # 12 tests, will skip the heavy model ones if /models is empt
 
 ## Deployment
 
-The public endpoint runs on a personal VPS:
+The public endpoint runs on a personal VPS, fronted by **Tailscale Funnel** so the origin IP is never exposed:
 
 * `/opt/antiplagiat-mcp/` (venv, models, real `.env` chmod 600)
-* `systemd` unit `antiplagiat-mcp.service`
-* Caddy on `:8443` (since `:443` is occupied by xray on that host) with a Let's Encrypt cert via the HTTP-01 challenge on `:80`
-* Hostname is `46-232-250-248.sslip.io` — sslip.io maps any IP-shaped subdomain to the IP, so we get a valid certificate without owning a domain
+* `systemd` unit `antiplagiat-mcp.service` runs uvicorn on `127.0.0.1:8765`
+* `tailscaled` Funnel exposes the local port at `https://antiplagiat-mcp.tailf03eb8.ts.net/`
+* TLS cert is provisioned automatically by Tailscale (Let's Encrypt under the hood)
+* Public traffic enters via Tailscale's edge network — only `185.40.234.0/24` IPs touch the internet, the VPS is invisible to port scanners
 
-See [`deploy/`](./deploy/) for the Caddyfile and systemd unit.
+See [`deploy/`](./deploy/) for the systemd unit and the Tailscale serve config.
 
 ## Security
 
@@ -156,7 +157,7 @@ antiplagiat-mcp/
 │   ├── download_models.py  Pulls the 4 HF models on first deploy
 │   └── calibrate.py        Re-runs the labelled corpus against the live server
 ├── deploy/
-│   ├── Caddyfile           sslip.io HTTPS on :8443
+│   ├── tailscale-serve.md  Tailscale Funnel setup notes
 │   └── antiplagiat-mcp.service
 ├── tests/                  Unit tests + integration tests skipped without models
 └── PLAN.md                 Stages and design notes

@@ -7,7 +7,7 @@ Intended to be re-run by hand after each model or threshold change.
 
 Usage:
     python scripts/calibrate.py
-    python scripts/calibrate.py --url https://46-232-250-248.sslip.io:8443/mcp/
+    python scripts/calibrate.py --url https://antiplagiat-mcp.tailf03eb8.ts.net/mcp/
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ import statistics
 
 import httpx
 
-DEFAULT_URL = "https://46-232-250-248.sslip.io:8443/mcp/"
+DEFAULT_URL = "https://antiplagiat-mcp.tailf03eb8.ts.net/mcp/"
 
 # (label, language, source, text). "human" / "ai" labels are only ground truth
 # in spirit — these are illustrative samples, not a benchmark.
@@ -98,7 +98,7 @@ async def call_tool(client: httpx.AsyncClient, url: str, text: str) -> dict:
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json, text/event-stream",
-        "Origin": "https://46-232-250-248.sslip.io:8443",
+        "Origin": "https://antiplagiat-mcp.tailf03eb8.ts.net",
     }
     resp = await client.post(url, json=payload, headers=headers, timeout=60.0)
     resp.raise_for_status()

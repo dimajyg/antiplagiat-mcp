@@ -27,8 +27,8 @@ VPS: 4 vCPU / 8 GB RAM, no GPU. Headroom ~6 GB after existing services.
 |----------------|---------------------------------------------------------|
 | Language       | Python 3.13                                             |
 | MCP framework  | Official `mcp` SDK                                      |
-| Transport      | Streamable HTTP behind Caddy (TLS via Let's Encrypt)    |
-| Public hostname| `46-232-250-248.sslip.io` (no domain purchase needed)   |
+| Transport      | Streamable HTTP via Tailscale Funnel (origin IP hidden) |
+| Public hostname| `antiplagiat-mcp.tailf03eb8.ts.net` (free, stable)      |
 | Embeddings     | OpenRouter `/v1/embeddings`, fallback to local e5-small |
 | Web search     | Serper.dev (per-request via client header)              |
 | Local AI det.  | `yaya36095/xlm-roberta-text-detector` (ONNX-quantized)  |
@@ -75,7 +75,7 @@ VPS: 4 vCPU / 8 GB RAM, no GPU. Headroom ~6 GB after existing services.
 - [ ] SQLite cache (content-hash keyed, no PII)
 
 ### Stage 4 — Deploy
-- [ ] Caddy reverse proxy with `46-232-250-248.sslip.io` + Let's Encrypt
+- [x] Tailscale Funnel terminates TLS and hides the origin VPS IP
 - [ ] systemd unit `antiplagiat-mcp.service`
 - [ ] Health endpoint + structured logging
 - [ ] Smoke test from a remote MCP client
@@ -99,4 +99,4 @@ VPS: 4 vCPU / 8 GB RAM, no GPU. Headroom ~6 GB after existing services.
 - [ ] Enable GitHub Push Protection in repo settings
 - [ ] Server reads client keys from headers only, never writes them anywhere
 - [ ] Logs scrub anything matching `sk-*` / `Authorization`
-- [ ] Caddy enforces HTTPS, HTTP redirected
+- [x] All public traffic is HTTPS via Tailscale Funnel; no direct origin exposure
