@@ -1,0 +1,26 @@
+# Caddy config for antiplagiat-mcp on the public VPS.
+# sslip.io gives us a hostname derived from the IP, so Let's Encrypt issues
+# a real cert without us owning a domain.
+
+46-232-250-248.sslip.io {
+    encode zstd gzip
+
+    # MCP Streamable HTTP endpoint
+    handle /mcp* {
+        reverse_proxy localhost:8765
+    }
+
+    # Health check, no auth needed
+    handle /healthz {
+        reverse_proxy localhost:8765
+    }
+
+    handle {
+        respond "antiplagiat-mcp — see github.com/dimajyg/antiplagiat-mcp" 200
+    }
+
+    log {
+        output file /var/log/caddy/antiplagiat-mcp.log
+        format json
+    }
+}

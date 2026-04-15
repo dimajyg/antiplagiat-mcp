@@ -1,0 +1,42 @@
+# Secrets — NEVER commit
+.env
+.env.*
+!.env.example
+secrets/
+*.key
+*.pem
+*.p12
+credentials.json
+
+# Models cache (big files, downloaded on deploy)
+models/
+.cache/
+.huggingface/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+
+# SQLite cache
+*.db
+*.sqlite
+*.sqlite3
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+logs/

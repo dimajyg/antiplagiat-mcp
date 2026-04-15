@@ -1,0 +1,24 @@
+[Unit]
+Description=antiplagiat-mcp server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/antiplagiat-mcp
+EnvironmentFile=/opt/antiplagiat-mcp/.env
+ExecStart=/opt/antiplagiat-mcp/.venv/bin/python server.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/antiplagiat-mcp
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
