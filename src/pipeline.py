@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from typing import Literal
+from dataclasses import asdict, dataclass, is_dataclass
+from typing import Any, Literal
 
 from . import language as lang_mod
 from .cache import Cache, content_hash
@@ -26,10 +26,18 @@ class FullAnalysis:
         return {
             "hash": self.hash,
             "language": self.language,
-            "ai": asdict(self.ai) if self.ai else None,
-            "plagiarism": asdict(self.plagiarism) if self.plagiarism else None,
+            "ai": _safe_asdict(self.ai),
+            "plagiarism": _safe_asdict(self.plagiarism),
             "summary": self.summary,
         }
+
+
+def _safe_asdict(obj: Any) -> Any:
+    if obj is None:
+        return None
+    if is_dataclass(obj):
+        return asdict(obj)
+    return obj
 
 
 class Pipeline:
@@ -67,7 +75,10 @@ class Pipeline:
 def _summarise(ai: AIAnalysis | None, plag: PlagiarismAnalysis | None) -> str:
     parts = []
     if ai is not None:
-        parts.append(f"AI probability: {ai.ai_probability:.0%}")
+        parts.append(f"AI probability: {ai.ai_probability:.0%} ({ai.confidence})")
     if plag is not None:
-        parts.append(f"Plagiarism: {plag.match_percentage:.0%}")
+        if plag.skipped_reason:
+            parts.append(f"Plagiarism: skipped ({plag.skipped_reason})")
+        else:
+            parts.append(f"Plagiarism: {plag.match_percentage:.0%}")
     return " | ".join(parts) or "no checks selected"

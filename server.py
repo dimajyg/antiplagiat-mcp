@@ -10,15 +10,17 @@ from __future__ import annotations
 import logging
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Header
 
 from src import __version__
-from src.config import settings
+from src.config import RequestCredentials, settings
 from src.language import detect
+from src.pipeline import Pipeline
 
 log = logging.getLogger("antiplagiat-mcp")
 
 app = FastAPI(title="antiplagiat-mcp", version=__version__)
+pipeline = Pipeline()
 
 
 @app.get("/")
@@ -48,6 +50,32 @@ def mcp_stub() -> dict:
 def debug_detect(payload: dict) -> dict:
     text = payload.get("text", "")
     return {"language": detect(text)}
+
+
+@app.post("/debug/analyze")
+async def debug_analyze(
+    payload: dict,
+    x_openrouter_key: str | None = Header(default=None),
+    x_serper_key: str | None = Header(default=None),
+    x_sapling_key: str | None = Header(default=None),
+) -> dict:
+    text = payload.get("text", "")
+    creds = RequestCredentials.from_headers(
+        {
+            "X-OpenRouter-Key": x_openrouter_key or "",
+            "X-Serper-Key": x_serper_key or "",
+            "X-Sapling-Key": x_sapling_key or "",
+        },
+        settings,
+    )
+    result = await pipeline.analyze(
+        text=text,
+        creds=creds,
+        mode=payload.get("mode", "fast"),
+        check_ai=payload.get("check_ai", True),
+        check_plagiarism=payload.get("check_plagiarism", True),
+    )
+    return result.to_mcp()
 
 
 def main() -> None:
