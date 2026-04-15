@@ -9,6 +9,7 @@ from . import language as lang_mod
 from .cache import Cache, content_hash
 from .config import RequestCredentials, settings
 from .detectors.ai_local import AIAnalysis, LocalAIDetector
+from .detectors.external import SaplingDetector
 from .detectors.plagiarism import PlagiarismAnalysis, PlagiarismDetector
 
 Mode = Literal["fast", "deep"]
@@ -45,6 +46,7 @@ class Pipeline:
         self.cache = Cache(settings.cache_db)
         self.ai = LocalAIDetector()
         self.plagiarism = PlagiarismDetector()
+        self.sapling = SaplingDetector()
 
     async def analyze(
         self,
@@ -61,6 +63,27 @@ class Pipeline:
         plag_result = (
             await self.plagiarism.analyze(text, language, creds) if check_plagiarism else None
         )
+
+        if ai_result is not None and mode == "deep" and creds.sapling_key:
+            external = await self.sapling.analyze(text, creds.sapling_key)
+            ai_result.external_sources.append(
+                {
+                    "provider": external.provider,
+                    "ai_probability": external.ai_probability,
+                    "error": external.error,
+                }
+            )
+            if external.error is None:
+                ai_result.local_heuristic_probability = ai_result.ai_probability
+                ai_result.ai_probability = external.ai_probability
+                ai_result.confidence = "high"  # trained classifier trumps heuristic
+                ai_result.notes.append(
+                    f"deep mode: ai_probability overridden by Sapling "
+                    f"({external.ai_probability:.2f}); local heuristic was "
+                    f"{ai_result.local_heuristic_probability:.2f}"
+                )
+            else:
+                ai_result.notes.append(f"deep mode: Sapling failed — {external.error}")
 
         result = FullAnalysis(
             hash=h,

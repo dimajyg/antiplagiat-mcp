@@ -68,6 +68,11 @@ class AIAnalysis:
     avg_sentence_length: float
     suspicious_sentences: list[SuspiciousSentence] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    # Populated only in mode='deep' when an external provider replied. Each
+    # entry: {provider, ai_probability, error}. The top-level `ai_probability`
+    # is overridden by the deep provider when one is available.
+    external_sources: list[dict] = field(default_factory=list)
+    local_heuristic_probability: float | None = None
 
 
 class LocalAIDetector:
