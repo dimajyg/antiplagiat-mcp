@@ -1,8 +1,19 @@
 # Caddy config for antiplagiat-mcp on the public VPS.
+#
+# Port 443 on this host is occupied by xray (VLESS-Reality VPN), so we serve
+# HTTPS on :8443 instead. Let's Encrypt issuance still works via the HTTP-01
+# challenge on :80, which is free.
+#
 # sslip.io gives us a hostname derived from the IP, so Let's Encrypt issues
 # a real cert without us owning a domain.
 
-46-232-250-248.sslip.io {
+{
+    # ACME HTTP challenge listens on :80 (free), but TLS traffic served on :8443
+    http_port 80
+    https_port 8443
+}
+
+46-232-250-248.sslip.io:8443 {
     encode zstd gzip
 
     # MCP Streamable HTTP endpoint

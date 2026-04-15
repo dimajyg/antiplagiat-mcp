@@ -31,7 +31,7 @@ The server is **stateless** with respect to credentials. Add this to your `.clau
 {
   "mcpServers": {
     "antiplagiat": {
-      "url": "https://46-232-250-248.sslip.io/mcp",
+      "url": "https://46-232-250-248.sslip.io:8443/mcp",
       "headers": {
         "X-OpenRouter-Key": "sk-or-v1-...",
         "X-Serper-Key": "...",
