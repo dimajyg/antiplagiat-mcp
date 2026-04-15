@@ -80,7 +80,28 @@ The local layer is built from three signals that are language-agnostic in spirit
 
 These are blended into `ai_probability` with a transparent heuristic. Every raw signal is surfaced so you can override the verdict.
 
-> ⚠️ **Honest disclaimer.** We initially tried `yaya36095/xlm-roberta-text-detector` as a multilingual classifier; on real samples it returned ~100% AI for every input including obviously human Russian and English text. There's no similarly-sized open-source detector calibrated for Russian at the time of writing. So the local layer leans on statistical signals, not classifiers. For high-stakes use, pass an `X-Sapling-Key` and request `mode="deep"`.
+> ⚠️ **Honest disclaimer.** We initially tried `yaya36095/xlm-roberta-text-detector` as a multilingual classifier; on real samples it returned ~100% AI for every input including obviously human Russian and English text. There's no similarly-sized open-source detector calibrated for Russian at the time of writing. So the local layer leans on statistical signals, not classifiers.
+
+### `mode="deep"` — Sapling AI Detector
+
+When you call `analyze_text(mode="deep")` **and** pass `X-Sapling-Key` in your headers, the server also calls [Sapling's AI detector API](https://sapling.ai/docs/api/detector) (a properly trained classifier that does work on Russian). The result is blended:
+
+- The top-level `ai_probability` is **overridden** by Sapling's value
+- The original local heuristic score is preserved under `local_heuristic_probability`
+- `external_sources` lists every provider that was called, with its raw probability and any error
+- `confidence` bumps to `"high"` because a trained classifier is more trustworthy than our heuristic
+- A `notes` entry records the override so callers can see both numbers
+
+Example on an obviously-AI Russian paragraph:
+
+```
+fast mode:  ai_probability=0.60  (heuristic, confidence=medium)
+deep mode:  ai_probability=0.9999  confidence=high
+            local_heuristic_probability=0.60
+            external_sources=[{provider: "sapling", ai_probability: 0.9999}]
+```
+
+Sapling costs ~$0.005 per 1000 characters — roughly $0.05 for a long document. GPTZero is not wired up: its API is paid-only from $45/month and isn't worth the integration alongside Sapling.
 
 The plagiarism layer is the standard shingle pipeline: characteristic 7-word shingles → Serper.dev quoted search → trafilatura content extraction → exact-substring matches plus paraphrase similarity (cosine on embeddings). It only runs when the client passes a Serper key.
 
