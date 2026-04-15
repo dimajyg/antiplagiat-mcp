@@ -16,19 +16,8 @@
 46-232-250-248.sslip.io:8443 {
     encode zstd gzip
 
-    # MCP Streamable HTTP endpoint
-    handle /mcp* {
-        reverse_proxy localhost:8765
-    }
-
-    # Health check, no auth needed
-    handle /healthz {
-        reverse_proxy localhost:8765
-    }
-
-    handle {
-        respond "antiplagiat-mcp — see github.com/dimajyg/antiplagiat-mcp" 200
-    }
+    # Forward everything to the FastAPI/MCP backend; the app owns its routes.
+    reverse_proxy localhost:8765
 
     log {
         output file /var/log/caddy/antiplagiat-mcp.log

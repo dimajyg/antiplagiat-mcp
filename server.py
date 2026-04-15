@@ -21,6 +21,15 @@ log = logging.getLogger("antiplagiat-mcp")
 app = FastAPI(title="antiplagiat-mcp", version=__version__)
 
 
+@app.get("/")
+def root() -> dict:
+    return {
+        "service": "antiplagiat-mcp",
+        "version": __version__,
+        "repo": "https://github.com/dimajyg/antiplagiat-mcp",
+    }
+
+
 @app.get("/healthz")
 def healthz() -> dict:
     return {"status": "ok", "version": __version__, "stage": "0-skeleton"}
