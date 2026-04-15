@@ -74,13 +74,21 @@ class Pipeline:
                 }
             )
             if external.error is None:
+                # Preserve the local heuristic as the reported `ai_probability`.
+                # A controlled experiment (see README "Known limitations") fed
+                # Sapling a 2016 paper — published years before GPT-2 existed —
+                # and got back 99.996% AI. Sapling cannot distinguish
+                # "LLM-generated" from "Russian academic GOST style", so we no
+                # longer let it silently override the top-level verdict.
+                # External scores live in `external_sources` and the user/agent
+                # can blend them as they see fit.
                 ai_result.local_heuristic_probability = ai_result.ai_probability
-                ai_result.ai_probability = external.ai_probability
-                ai_result.confidence = "high"  # trained classifier trumps heuristic
                 ai_result.notes.append(
-                    f"deep mode: ai_probability overridden by Sapling "
-                    f"({external.ai_probability:.2f}); local heuristic was "
-                    f"{ai_result.local_heuristic_probability:.2f}"
+                    f"deep mode: Sapling returned {external.ai_probability:.2f} — "
+                    f"kept as external_sources entry, NOT used to override the "
+                    f"local heuristic ({ai_result.ai_probability:.2f}). Sapling "
+                    f"gives ~100% on all Russian academic prose regardless of "
+                    f"actual authorship; see README."
                 )
             else:
                 ai_result.notes.append(f"deep mode: Sapling failed — {external.error}")

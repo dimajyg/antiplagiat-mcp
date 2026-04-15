@@ -82,26 +82,30 @@ These are blended into `ai_probability` with a transparent heuristic. Every raw 
 
 > ⚠️ **Honest disclaimer.** We initially tried `yaya36095/xlm-roberta-text-detector` as a multilingual classifier; on real samples it returned ~100% AI for every input including obviously human Russian and English text. There's no similarly-sized open-source detector calibrated for Russian at the time of writing. So the local layer leans on statistical signals, not classifiers.
 
-### `mode="deep"` — Sapling AI Detector
+### `mode="deep"` — Sapling as a second opinion
 
-When you call `analyze_text(mode="deep")` **and** pass `X-Sapling-Key` in your headers, the server also calls [Sapling's AI detector API](https://sapling.ai/docs/api/detector) (a properly trained classifier that does work on Russian). The result is blended:
+When you call `analyze_text(mode="deep")` **and** pass `X-Sapling-Key` in your headers, the server also calls [Sapling's AI detector API](https://sapling.ai/docs/api/detector). Sapling's score is attached to the response as `external_sources[].ai_probability` but **does not override** the top-level `ai_probability` — see "Known limitations" below for the control experiment that disproved the earlier "trust Sapling" design.
 
-- The top-level `ai_probability` is **overridden** by Sapling's value
-- The original local heuristic score is preserved under `local_heuristic_probability`
-- `external_sources` lists every provider that was called, with its raw probability and any error
-- `confidence` bumps to `"high"` because a trained classifier is more trustworthy than our heuristic
-- A `notes` entry records the override so callers can see both numbers
+Sapling costs ~$0.005 per 1000 characters — roughly $0.05 for a long document. GPTZero is not wired up: its API is paid-only from $45/month.
 
-Example on an obviously-AI Russian paragraph:
+## Known limitations (read this before trusting any score)
 
-```
-fast mode:  ai_probability=0.60  (heuristic, confidence=medium)
-deep mode:  ai_probability=0.9999  confidence=high
-            local_heuristic_probability=0.60
-            external_sources=[{provider: "sapling", ai_probability: 0.9999}]
-```
+**Sapling returns ~100% AI on all Russian academic prose, regardless of actual authorship.** This was verified with a control experiment:
 
-Sapling costs ~$0.005 per 1000 characters — roughly $0.05 for a long document. GPTZero is not wired up: its API is paid-only from $45/month and isn't worth the integration alongside Sapling.
+| Sample | Year / source | Sapling | Local perplexity | Reality |
+|---|---|---:|---:|---|
+| Borodin et al., NL→SQL queries | 2016, CyberLeninka | **99.996%** | 26.6 | Physically impossible to be AI (published years before GPT-2) |
+| Thesis `intro_0` | 2026 | 99.988% | 21.8 | Drafted with LLM assistance |
+| Thesis `chapter3_1` | 2026 | 99.955% | 66.7 | Written by hand with technical terminology |
+
+The control paper — published years before ChatGPT existed on the exact same topic as the thesis — scored **higher** than the thesis's most clearly human-written sections. Sapling's classifier does not distinguish "LLM-generated" from "Russian academic GOST-style prose" (passive voice, formal transitions, long subordinate clauses, "следует отметить…" style markers).
+
+Practical consequences:
+
+1. **Sapling scores on Russian academic text are uninformative.** Don't act on them. The adapter is still called in deep mode so the raw number is surfaced, but we no longer let it override the local verdict.
+2. **Local perplexity is still useful *relatively* across sections of the same document.** A section at ppl 20 compared to a document-wide median of 55 is a real anomaly worth inspecting. An absolute threshold ("ppl < 15 → AI") does not work for Russian because normal formulaic prose also scores there.
+3. **For thesis defence**, only the detector actually used by your institution (most likely `Антиплагиат.ВУЗ`'s AI module, trained on Russian diplomas) matters. Neither our tool nor Sapling can predict that verdict.
+4. **Stylistic suggestions** ("vary sentence lengths, avoid passive voice") are still valuable — not to fool detectors (proven ineffective) but because a human committee member can intuitively sense overly-smooth prose.
 
 The plagiarism layer is the standard shingle pipeline: characteristic 7-word shingles → Serper.dev quoted search → trafilatura content extraction → exact-substring matches plus paraphrase similarity (cosine on embeddings). It only runs when the client passes a Serper key.
 

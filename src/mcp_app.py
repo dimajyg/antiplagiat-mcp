@@ -66,9 +66,10 @@ When to call `analyze_text`:
 
 How to use it well:
 - For documents > ~5000 characters, split by headings or paragraphs and call once per section. One call per document loses precision and may time out on CPU inference.
-- Start with `mode="fast"` (free, local, ~1-3s per 1000 chars). Only escalate to `mode="deep"` for sections that look suspicious in fast mode — deep mode calls Sapling's API and costs ~$0.005 per 1000 characters.
+- Start with `mode="fast"` (free, local, ~1-3s per 1000 chars). `mode="deep"` adds a Sapling call (~$0.005 per 1000 chars) — useful as a second opinion but **not** more trustworthy than the local heuristic on Russian academic prose (Sapling returns ~100% on a 2016 control paper; see README "Known limitations").
 - Set `check_plagiarism=False` on private documents the user doesn't want sent to external services. Private data otherwise leaves the server via Serper search and Sapling.
 - Always surface the *signals*, not just `ai_probability`: perplexity, burstiness, suspicious_sentences and matched URLs are what lets a human decide. Never present the score as a verdict.
+- For long documents, compute the **document-wide median perplexity** yourself and flag sections that are significantly below it. Absolute thresholds do not work for Russian academic prose; relative anomalies within one document do.
 
 Three workflow prompts are exposed as slash commands:
 - `/mcp__antiplagiat__check_fragment` — analyse one pasted fragment
@@ -134,8 +135,8 @@ async def analyze_text(
     """Score a text fragment for AI-generation and plagiarism (RU primary, EN supported).
 
     Returns JSON:
-      - `ai.ai_probability` (0-1) — blended verdict; in deep mode overridden by Sapling
-      - `ai.local_heuristic_probability` — always-present perplexity+burstiness score
+      - `ai.ai_probability` (0-1) — local perplexity+burstiness heuristic; NOT overridden by Sapling (see README known limitations — Sapling returns ~100% on Russian academic prose regardless of authorship)
+      - `ai.local_heuristic_probability` — same as above when deep mode was used, for symmetry with external_sources
       - `ai.perplexity`, `ai.burstiness`, `ai.confidence` — raw signals
       - `ai.suspicious_sentences[]` — top-5 most predictable sentences with char offsets
       - `ai.external_sources[]` — populated only when mode='deep' and a key was passed
